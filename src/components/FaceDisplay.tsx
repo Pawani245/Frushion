@@ -1,3 +1,4 @@
+
 'use client';
 import { useRef, useState, useEffect } from 'react';
 
@@ -6,19 +7,20 @@ export default function FaceDisplay() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const scanningLineRef = useRef(0);
   const scanningDirectionRef = useRef('down');
+  const faceMeshRef = useRef<any>(null);
+  const currentLandmarksRef = useRef<any[]>([]);
   const [cameraStarted, setCameraStarted] = useState(false);
   const [statusMessage, setStatusMessage] = useState('Initializing camera...');
   const [score, setScore] = useState<string | null>('Analyzing...');
   const [noFaceDetected, setNoFaceDetected] = useState(false);
-  const [analyzing, setAnalyzing] = useState(false); // State for controlling score fetching
+  const [analyzing, setAnalyzing] = useState(false);
 
   const FACIAL_FEATURES = {
-    leftEye: [33, 133],
-    rightEye: [263, 362],
-    leftEyebrow: [70, 107],
-    rightEyebrow: [336, 300],
-    lips: [61, 291],
-    nose: [168, 2],
+    leftEye: 33,
+    rightEye: 263,
+    nose: 1,
+    mouthLeft: 61,
+    mouthRight: 291,
   };
 
   const COLORS = ['#FF6347', '#32CD32', '#1E90FF', '#FFD700', '#FF4500'];
@@ -30,7 +32,7 @@ export default function FaceDisplay() {
     ctx.fill();
   };
 
-  const drawFaceBox = (ctx: CanvasRenderingContext2D, landmarks: any[], index: number, numFaces: number) => {
+  const drawFaceBox = (ctx: CanvasRenderingContext2D, landmarks: any[], index: number) => {
     const xs = landmarks.map((point) => point.x * ctx.canvas.width);
     const ys = landmarks.map((point) => point.y * ctx.canvas.height);
 
@@ -50,14 +52,12 @@ export default function FaceDisplay() {
   };
 
   const drawMesh = (ctx: CanvasRenderingContext2D, landmarks: any[], index: number) => {
-    Object.values(FACIAL_FEATURES).forEach((feature) => {
-      const startPoint = landmarks[feature[0]];
-      const endPoint = landmarks[feature[1]];
-      drawDot(ctx, startPoint.x * ctx.canvas.width, startPoint.y * ctx.canvas.height);
-      drawDot(ctx, endPoint.x * ctx.canvas.width, endPoint.y * ctx.canvas.height);
+    Object.values(FACIAL_FEATURES).forEach((idx) => {
+      const point = landmarks[idx];
+      drawDot(ctx, point.x * ctx.canvas.width, point.y * ctx.canvas.height);
     });
 
-    drawFaceBox(ctx, landmarks, index, 0);
+    drawFaceBox(ctx, landmarks, index);
   };
 
   const drawScanningLine = (ctx: CanvasRenderingContext2D) => {
@@ -80,16 +80,31 @@ export default function FaceDisplay() {
     ctx.stroke();
   };
 
-  const fetchScore = async (canvas: HTMLCanvasElement) => {
-    const imageData = canvas.toDataURL('image/jpeg');
+  const fetchScore = async () => {
+    if (!currentLandmarksRef.current.length) {
+      setStatusMessage('No face landmarks available.');
+      setScore(null);
+      return;
+    }
+
+    const face = currentLandmarksRef.current[0];
+    const requiredLandmarks = [
+      [face[33].x, face[33].y],     // left eye
+      [face[263].x, face[263].y],   // right eye
+      [face[1].x, face[1].y],       // nose
+      [face[61].x, face[61].y],     // mouth left
+      [face[291].x, face[291].y],   // mouth right
+    ];
+
     try {
       const res = await fetch('http://localhost:5000/api/score', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ image: imageData }),
+        body: JSON.stringify({ landmarks: requiredLandmarks }),
       });
+
       const data = await res.json();
 
       if (data.error) {
@@ -122,7 +137,7 @@ export default function FaceDisplay() {
         });
 
         faceMesh.setOptions({
-          maxNumFaces: 5,
+          maxNumFaces: 1,
           refineLandmarks: true,
           minDetectionConfidence: 0.5,
           minTrackingConfidence: 0.5,
@@ -143,22 +158,27 @@ export default function FaceDisplay() {
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
           if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+            currentLandmarksRef.current = results.multiFaceLandmarks;
             setStatusMessage(`${results.multiFaceLandmarks.length} face(s) detected.`);
             results.multiFaceLandmarks.forEach((landmarks: any[], idx: number) => {
               drawMesh(ctx, landmarks, idx);
             });
           } else {
+            currentLandmarksRef.current = [];
             setStatusMessage('No face detected. Please center your face.');
             drawScanningLine(ctx);
             setScore(null);
           }
         });
 
+        faceMeshRef.current = faceMesh;
+
         const detectLoop = async () => {
           if (!videoRef.current) return;
           await faceMesh.send({ image: videoRef.current });
           requestAnimationFrame(detectLoop);
         };
+
         detectLoop();
       };
 
@@ -170,12 +190,8 @@ export default function FaceDisplay() {
   };
 
   const handleScoreButtonClick = () => {
-    setAnalyzing(true); // Start the analysis when the button is clicked
-    const canvas = canvasRef.current;
-    if (canvas) {
-      fetchScore(canvas);
-    }
-    setAnalyzing(false); // Stop the analysis after the score is fetched
+    setAnalyzing(true);
+    fetchScore().finally(() => setAnalyzing(false));
   };
 
   useEffect(() => {
@@ -206,7 +222,7 @@ export default function FaceDisplay() {
           muted
           playsInline
           className="absolute inset-0 w-full h-full object-cover"
-          style={{ transform: 'scaleX(-1)', visibility: 'hidden' }} // Hide the camera
+          style={{ transform: 'scaleX(-1)', visibility: 'hidden' }}
         />
         <canvas
           ref={canvasRef}

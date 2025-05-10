@@ -155,22 +155,87 @@ const AnalysisCard: React.FC = () => {
     alert('Saved Analysis: ' + JSON.stringify(savedAnalysis, null, 2));
   };
 
+  // AI Tips based on the analysis
+  const generateAITips = () => {
+    const tips: string[] = [];
+
+    // Skin Tone Tips
+    if (realSkinTone === 'Fair') {
+      tips.push('Fair skin is sensitive to sun exposure. Make sure to use sunscreen!');
+    } else if (realSkinTone === 'Light') {
+      tips.push('Use products with gentle exfoliants to brighten up your skin tone.');
+    } else if (realSkinTone === 'Medium') {
+      tips.push('Medium skin tone often tans easily. Hydrate and protect with SPF.');
+    } else if (realSkinTone === 'Tan') {
+      tips.push('Tan skin can be prone to dryness. Make sure to use a moisturizing routine.');
+    } else if (realSkinTone === 'Deep') {
+      tips.push('Deep skin tones may experience hyperpigmentation. Consider using brightening treatments.');
+    }
+
+    // Texture Tips
+    if (realTexture === 'Very Smooth') {
+      tips.push('Great texture! Keep up with your regular skincare routine.');
+    } else if (realTexture === 'Smooth') {
+      tips.push('Consider adding a mild exfoliant to maintain smooth skin.');
+    } else if (realTexture === 'Oily') {
+      tips.push('Use a gel-based moisturizer and clean your face with an oil-control cleanser.');
+    } else if (realTexture === 'Dry') {
+      tips.push('Opt for hydrating serums and rich moisturizers to maintain skin moisture.');
+    }
+
+    // Elasticity Tips
+    if (skinElasticity === 'High') {
+      tips.push('Keep up with your skincare routine to maintain elasticity.');
+      tips.push('Consider incorporating collagen-boosting products for long-term benefits.');
+    } else if (skinElasticity === 'Moderate') {
+      tips.push('Add a firming serum or treatment to improve elasticity.');
+      tips.push('Regular moisturizing and SPF can help maintain skin elasticity.');
+    } else if (skinElasticity === 'Low') {
+      tips.push('Consider using products that support skin regeneration, like retinoids.');
+      tips.push('Hydrate your skin regularly with a richer moisturizer.');
+    }
+
+    // Hydration Tips
+    if (hydrationLevel === 'Optimal') {
+      tips.push('Keep your hydration levels up by drinking water and using hydrating products.');
+      tips.push('Continue using your current skincare routine for healthy, hydrated skin.');
+    } else if (hydrationLevel === 'Good') {
+      tips.push('Consider adding a more hydrating serum to boost moisture levels.');
+    } else if (hydrationLevel === 'Average') {
+      tips.push('Use a thicker moisturizer and stay hydrated throughout the day.');
+      tips.push('Consider using a hydrating mask once a week for deep hydration.');
+    } else if (hydrationLevel === 'Low') {
+      tips.push('Your skin may need extra hydration. Use a rich moisturizer and hydrating serum.');
+    }
+
+    return tips;
+  };
+
   return (
-    <div className="bg-gradient-to-b from-blue-900 to-purple-700 p-6 rounded-xl shadow-md text-white">
-      <h2 className="text-2xl font-semibold mb-4 text-center">Live Skin Analysis</h2>
+    <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-8 rounded-xl text-center shadow-lg transform hover:scale-105 transition-all duration-300 ease-in-out relative">
+      <h2 className="text-2xl font-semibold mb-4 text-white">Live Skin Analysis</h2>
 
       {/* Hidden video feed */}
-      <video ref={videoRef} autoPlay playsInline width="0" height="0" className="hidden" />
+      <video ref={videoRef} autoPlay playsInline width="0" height="0" style={{ display: 'none' }} />
 
-      {/* Texture Info Always Visible */}
-      <div className="bg-blue-800 p-4 rounded-md mb-4 shadow-lg">
-        <h3 className="text-lg font-semibold mb-2">Texture Details</h3>
-        <ul className="list-disc pl-4">
+      {/* Texture Info Card */}
+      <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-6 rounded-lg shadow-lg mb-6 transform hover:scale-105 transition-all duration-300">
+        <h3 className="text-lg font-semibold text-white mb-2">Texture Details</h3>
+        <ul className="list-disc pl-4 text-white">
           <li>Texture: {realTexture}</li>
-          <li>Skin Elasticity: {skinElasticity}</li> {/* Skin Elasticity */}
-          <li>Hydration Level: {hydrationLevel}</li> {/* Hydration Level */}
-          <li>Skin Tone: {realSkinTone}</li> {/* Skin Tone */}
-          <li>Tip: Keep hydrated for better skin texture!</li>
+          <li>Skin Elasticity: {skinElasticity}</li>
+          <li>Hydration Level: {hydrationLevel}</li>
+          <li>Skin Tone: {realSkinTone}</li>
+        </ul>
+      </div>
+
+      {/*  Tips Card */}
+      <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-6 rounded-lg shadow-lg mb-6 transform hover:scale-105 transition-all duration-300">
+        <h3 className="text-lg font-semibold text-white mb-2">Tips</h3>
+        <ul className="list-disc pl-4 text-white">
+          {generateAITips().map((tip, index) => (
+            <li key={index}>{tip}</li>
+          ))}
         </ul>
       </div>
 
@@ -199,7 +264,7 @@ const AnalysisCard: React.FC = () => {
         <span>Further Analysis</span>
         <span
           onClick={() => setShowMore(!showMore)}
-          className="text-gray-400 cursor-pointer hover:text-gray-200"
+          className="text-gray-200 cursor-pointer hover:text-gray-100"
         >
           {showMore ? 'Hide' : 'See More'}
         </span>
@@ -209,31 +274,31 @@ const AnalysisCard: React.FC = () => {
       {showMore && (
         <>
           {/* Skin Tone Chart */}
-          <div className="bg-blue-800 p-4 rounded-md mb-4 shadow-lg">
+        <div className="bg-gradient-to-r from-blue-600 to-blue-600 p-6 rounded-lg shadow-lg mb-6 transform hover:scale-105 transition-all duration-300">
             <h3 className="text-lg font-semibold text-white mb-2">Skin Tone Distribution</h3>
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="100%" height={300}>
               <LineChart data={skinToneData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
+                <XAxis dataKey="name" tick={{ fill: '#fff' }} />
+                <YAxis tick={{ fill: '#fff' }} />
                 <Tooltip />
                 <Legend />
-                <Line type="monotone" dataKey="uv" stroke="#ffffff" strokeWidth={2} />
+                <Line type="monotone" dataKey="uv" stroke="#ffffff" strokeWidth={3} />
               </LineChart>
             </ResponsiveContainer>
           </div>
 
           {/* Texture Chart */}
-          <div className="bg-blue-800 p-4 rounded-md mb-4 shadow-lg">
+        <div className="bg-gradient-to-r from-blue-600 to-blue-600 p-6 rounded-lg shadow-lg mb-6 transform hover:scale-105 transition-all duration-300">
             <h3 className="text-lg font-semibold text-white mb-2">Skin Texture Distribution</h3>
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="100%" height={300}>
               <LineChart data={textureData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
+                <XAxis dataKey="name" tick={{ fill: '#fff' }} />
+                <YAxis tick={{ fill: '#fff' }} />
                 <Tooltip />
                 <Legend />
-                <Line type="monotone" dataKey="uv" stroke="#ffffff" strokeWidth={2} />
+                <Line type="monotone" dataKey="uv" stroke="#ffffff" strokeWidth={3} />
               </LineChart>
             </ResponsiveContainer>
           </div>
