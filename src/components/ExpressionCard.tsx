@@ -7,12 +7,24 @@ function ExpressionCard() {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [animationState, setAnimationState] = useState('idle');
-  const [isAnalysisActive, setIsAnalysisActive] = useState(false); // New state to track button press
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
 
-  // Start camera
+  useEffect(() => {
+    const loadModels = async () => {
+      await faceapi.nets.ssdMobilenetv1.loadFromUri('/models');  // Load face detection model
+      await faceapi.nets.faceExpressionNet.loadFromUri('/models');  // Load expression recognition model
+    };
+
+    loadModels().then(() => {
+      console.log("Models loaded successfully");
+    }).catch((err) => {
+      console.error("Error loading models:", err);
+    });
+  }, []);
+
+  // Start camera stream
   useEffect(() => {
     const startCamera = async () => {
       try {
@@ -22,65 +34,52 @@ function ExpressionCard() {
         }
       } catch (err) {
         console.error('Camera access error:', err);
+        setMessage('Unable to access camera. Please check permissions.');
       }
     };
+
     startCamera();
   }, []);
 
-  const captureAndSendFrame = () => {
+  const captureAndAnalyzeFrame = async () => {
     if (!videoRef.current || !canvasRef.current) return;
 
     const video = videoRef.current;
     const canvas = canvasRef.current;
-
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
 
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    // Detect faces and expressions using face-api.js
+    const detections = await faceapi.detectAllFaces(video).withFaceExpressions();
 
-    // Check if the canvas was drawn correctly
-    if (ctx.getImageData(0, 0, canvas.width, canvas.height).data.length === 0) {
-      console.error("Canvas drawing failed!");
-      return;
+    if (detections.length > 0) {
+      const expressions = detections[0].expressions;
+      const dominantExpression = Object.keys(expressions).reduce((a, b) =>
+        expressions[a] > expressions[b] ? a : b
+      );
+      setExpression(dominantExpression);
+      setEmoji(getEmojiForExpression(dominantExpression));
+      setMessage(`Confidence: ${expressions[dominantExpression].toFixed(2)}`);
+      triggerAnimation(dominantExpression);
+    } else {
+      setExpression('No face detected');
+      setEmoji('🤔');
+      setMessage('Unable to detect face');
     }
 
-    canvas.toBlob(blob => {
-      if (blob) sendFrame(blob);
-    }, 'image/jpeg');
+    // Draw the face detection results on the canvas
+    faceapi.draw.drawDetections(canvas, detections);
+    faceapi.draw.drawFaceExpressions(canvas, detections);
   };
 
-  const sendFrame = async (blob) => {
-    const formData = new FormData();
-    formData.append('file', blob, 'frame.jpg');
-    setLoading(true);
-
-    try {
-      const res = await fetch('http://localhost:5000/analyze_expression', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const result = await res.json();
-
-      if (result.status === 'success') {
-        setExpression(result.expression);
-        setEmoji(result.emoji);
-        setMessage(result.message);
-        triggerAnimation(result.expression);
-      } else {
-        console.warn('Expression detection failed:', result.message);
-        setExpression('unknown');
-        setEmoji('🤔');
-        setMessage(result.message || 'Unable to detect expression.');
-      }
-    } catch (err) {
-      console.error('Error sending frame:', err);
-      setExpression('error');
-      setEmoji('❌');
-      setMessage('Could not analyze expression.');
-    } finally {
-      setLoading(false);
+  const getEmojiForExpression = (expression) => {
+    switch (expression) {
+      case 'happy': return '😊';
+      case 'sad': return '😢';
+      case 'angry': return '😡';
+      case 'surprised': return '😲';
+      case 'neutral': return '😐';
+      default: return '🤔';
     }
   };
 
@@ -91,10 +90,14 @@ function ExpressionCard() {
     else setAnimationState('neutral');
   };
 
-  const handleAnalysisClick = () => {
-    setIsAnalysisActive(true);
-    captureAndSendFrame(); // Trigger the analysis when the button is clicked
-  };
+  // Continuously capture frames and analyze every 100ms
+  useEffect(() => {
+    const interval = setInterval(() => {
+      captureAndAnalyzeFrame();
+    }, 100); // Adjust the interval for real-time performance
+
+    return () => clearInterval(interval); // Clean up the interval on component unmount
+  }, []);
 
   return (
     <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-8 rounded-xl text-center shadow-lg transform hover:scale-105 transition-all duration-300 ease-in-out relative">
@@ -128,7 +131,9 @@ function ExpressionCard() {
                 {emoji}
               </div>
             </div>
-            <p className="text-xl text-white font-bold">{expression || 'No mood detected yet'}</p>
+            <p className="text-xl text-white font-bold">
+              {expression || 'Expression not detected yet'}
+            </p>
             <p className="text-sm text-white italic mt-2">{message}</p>
           </>
         )}
@@ -136,15 +141,6 @@ function ExpressionCard() {
 
       <div className="mt-4 text-sm text-white px-4 py-2 rounded-full shadow-xl bg-black bg-opacity-50">
         {loading ? 'Analyzing your expression...' : 'No confidence data'}
-      </div>
-
-      <div className="mt-4">
-        <button
-          onClick={handleAnalysisClick}
-          className="px-6 py-3 bg-blue-500 text-white rounded-full hover:bg-blue-700 transition duration-300 ease-in-out"
-        >
-          Analyze Expression
-        </button>
       </div>
     </div>
   );
