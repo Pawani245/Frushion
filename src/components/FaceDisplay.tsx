@@ -9,6 +9,8 @@ export default function FaceDisplay() {
   const [cameraStarted, setCameraStarted] = useState(false);
   const [statusMessage, setStatusMessage] = useState('Initializing camera...');
   const [score, setScore] = useState<string | null>('Analyzing...');
+  const [noFaceDetected, setNoFaceDetected] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false); // State for controlling score fetching
 
   const FACIAL_FEATURES = {
     leftEye: [33, 133],
@@ -89,14 +91,20 @@ export default function FaceDisplay() {
         body: JSON.stringify({ image: imageData }),
       });
       const data = await res.json();
-      if (data.score) {
-        setScore(data.score);
-      } else {
+
+      if (data.error) {
         setScore(null);
+        setStatusMessage(data.error);
+        setNoFaceDetected(true);
+      } else if (data.score) {
+        setScore(data.score);
+        setNoFaceDetected(false);
       }
     } catch (err) {
       console.error('Score fetch error:', err);
       setScore(null);
+      setStatusMessage('Error while fetching score.');
+      setNoFaceDetected(true);
     }
   };
 
@@ -139,10 +147,10 @@ export default function FaceDisplay() {
             results.multiFaceLandmarks.forEach((landmarks: any[], idx: number) => {
               drawMesh(ctx, landmarks, idx);
             });
-            fetchScore(canvas); // Fetch score every time faces are detected
           } else {
             setStatusMessage('No face detected. Please center your face.');
             drawScanningLine(ctx);
+            setScore(null);
           }
         });
 
@@ -159,6 +167,15 @@ export default function FaceDisplay() {
       console.error('Camera access error:', err);
       setStatusMessage('Camera access denied or unavailable.');
     }
+  };
+
+  const handleScoreButtonClick = () => {
+    setAnalyzing(true); // Start the analysis when the button is clicked
+    const canvas = canvasRef.current;
+    if (canvas) {
+      fetchScore(canvas);
+    }
+    setAnalyzing(false); // Stop the analysis after the score is fetched
   };
 
   useEffect(() => {
@@ -201,6 +218,34 @@ export default function FaceDisplay() {
       <div className="mt-4 text-sm text-white px-4 py-2 rounded shadow-lg">
         {statusMessage}
       </div>
+      {noFaceDetected && (
+        <div className="mt-4 text-sm text-red-500 px-4 py-2 rounded shadow-lg">
+          No face detected. Please center your face.
+        </div>
+      )}
+      {score && (
+        <div className="mt-4 text-xl text-white font-bold">
+          Beauty Score: {score}
+        </div>
+      )}
+      <button
+        onClick={handleScoreButtonClick}
+        disabled={analyzing}
+        className={`mt-4 py-3 px-8 text-white rounded-xl shadow-lg transition-all duration-300 transform ${
+          analyzing
+            ? 'bg-gray-600 cursor-not-allowed'
+            : 'bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 hover:scale-105 hover:from-purple-700 hover:via-indigo-700 hover:to-blue-700'
+        }`}
+      >
+        {analyzing ? (
+          <div className="flex justify-center items-center space-x-2">
+            <div className="w-5 h-5 border-t-2 border-t-white border-solid rounded-full animate-spin"></div>
+            <span>Loading...</span>
+          </div>
+        ) : (
+          'Get Beauty Score'
+        )}
+      </button>
     </div>
   );
 }
