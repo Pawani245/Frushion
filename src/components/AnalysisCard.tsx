@@ -212,7 +212,7 @@ const AnalysisCard: React.FC = () => {
   };
 
   return (
-    <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-8 rounded-xl text-center shadow-lg transform hover:scale-105 transition-all duration-300 ease-in-out relative">
+    <div className="bg-gradient-to-r from-pink-600 to-purple-600 p-8 rounded-xl text-center shadow-lg transform hover:scale-105 transition-all duration-300 ease-in-out relative">
       <h2 className="text-2xl font-semibold mb-4 text-white">Live Skin Analysis</h2>
 
       {/* Hidden video feed */}

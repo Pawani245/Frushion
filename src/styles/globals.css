@@ -1,8 +1,16 @@
+/* globals.css or tailwind.css */
+
+/* Importing the Dancing Script font from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&display=swap');
+
+/* Tailwind CSS */
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Custom theme and variant definition */
 @custom-variant dark (&:is(.dark *));
 
+/* Custom CSS variables */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -42,15 +50,19 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 }
+
+/* Keyframes for scan animation */
 @keyframes scan {
   0% { top: 0%; }
   100% { top: 100%; }
 }
 
+/* Scan animation */
 .animate-scan {
   animation: scan 2s linear infinite;
 }
 
+/* Root CSS variables */
 :root {
   --radius: 0.625rem;
   --background: oklch(1 0 0);
@@ -86,6 +98,7 @@
   --sidebar-ring: oklch(0.705 0.015 286.067);
 }
 
+/* Dark mode styles */
 .dark {
   --background: oklch(0.141 0.005 285.823);
   --foreground: oklch(0.985 0 0);
@@ -120,6 +133,7 @@
   --sidebar-ring: oklch(0.552 0.016 285.938);
 }
 
+/* Base layer for the global styles */
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -127,11 +141,4 @@
   body {
     @apply bg-background text-foreground;
   }
-  
 }
-@keyframes wiggle {
-  0%, 100% { transform: rotate(-5deg); }
-  50% { transform: rotate(5deg); }
-}
-
-
