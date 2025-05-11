@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 
-const icons = ['lips', 'eye', 'brows', 'proportion', 'skin', 'face', 'eyeshadow'];
+const icons = ['Lips', 'Eye', 'Brows', 'Proportion', 'Skin', 'Face', 'Eyeshadow'];
 
 export default function FeatureIcons() {
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
@@ -28,17 +28,17 @@ export default function FeatureIcons() {
   return (
     <div className="flex gap-2 items-center justify-center mt-2 bg-black/50 p-2 rounded-xl">
       {icons.map((icon, index) => (
-        <img
+        <div
           key={index}
-          src={`/assets/${icon}.png`}
-          alt={icon}
           onClick={() => toggleFilter(icon)}
-          className={`w-8 h-8 cursor-pointer rounded-md p-1 transition ${
+          className={`w-16 h-8 flex items-center justify-center cursor-pointer rounded-md p-1 text-sm font-semibold transition ${
             selectedFilters.includes(icon)
-              ? 'bg-white shadow-lg scale-110'
-              : 'opacity-60 hover:opacity-100'
+              ? 'text-white font-bold'  // Bold and white when selected
+              : 'text-white opacity-60 hover:opacity-100'  // Normal state
           }`}
-        />
+        >
+          {icon}
+        </div>
       ))}
     </div>
   );
